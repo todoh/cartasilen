@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego de Cartas - CS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+
+    <!-- SDK de Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+    <!-- Pantalla de Carga Inicial -->
+    <div id="loading-screen" class="game-screen active">
+        <h1>CS Cards</h1>
+        <p>Cargando...</p>
+    </div>
+
+    <!-- Pantalla de Login -->
+    <div id="login-screen" class="game-screen">
+        <h1>¡Bienvenido a CS Cards!</h1>
+        <p class="game-description">
+            CS Cards es un juego de cartas estratégico para dos jugadores. Construye tu baraja, desafía a tus amigos y demuestra quién tiene la mejor táctica para llegar a la meta.
+        </p>
+        <button id="login-google-btn">
+            Iniciar Sesión con Google
+        </button>
+    </div>
+
+    <!-- Pantalla para Elegir Nombre de Usuario -->
+    <div id="username-screen" class="game-screen">
+        <h1>Elige tu Nombre de Usuario</h1>
+        <div class="input-group">
+            <label for="username-input">Este será tu nombre en el juego:</label>
+            <input type="text" id="username-input" placeholder="Tu nombre de usuario" maxlength="20">
+            <button id="save-username-btn">Guardar y Continuar</button>
+            <p id="username-error" class="error-message"></p>
+        </div>
+    </div>
+
+    <!-- Pantalla de Matchmaking -->
+    <div id="matchmaking-screen" class="game-screen">
+        <h1>Menú Principal</h1>
+        <p class="user-greeting">Hola, <strong id="current-username-display"></strong>!</p>
+        <div class="main-menu">
+            <div class="input-group">
+                <label for="rivalName-input">Introduce el nombre de usuario de tu rival:</label>
+                <input type="text" id="rivalName-input" placeholder="Nombre de usuario del rival">
+                <button id="btnFindGame">Buscar Partida</button>
+                <p id="rival-error" class="error-message"></p>
+            </div>
+            <button id="deck-builder-btn" class="menu-button">Crear Baraja</button>
+        </div>
+        <button id="logout-btn">Cerrar Sesión</button>
+    </div>
+
+    <!-- Pantalla de Creación de Baraja -->
+    <div id="deck-builder-screen" class="game-screen">
+        <h1>Editor de Barajas</h1>
+        <div class="deck-builder-layout">
+            <div class="card-collection" id="library-container">
+                <h2>Biblioteca de Cartas</h2>
+                <div id="library-cards" class="card-list">
+                </div>
+            </div>
+            <div class="deck-composition" id="deck-container">
+                <h2>Tu Baraja (<span id="deck-count">0</span>/30)</h2>
+                <div id="deck-cards" class="card-list">
+                </div>
+            </div>
+        </div>
+        <div class="deck-builder-actions">
+            <button id="save-deck-btn">Guardar Baraja</button>
+            <button id="back-to-menu-btn">Volver al Menú</button>
+        </div>
+    </div>
+
+
+    <!-- Pantalla de Fin de Partida (Screen2) -->
+    <div id="screen2" class="game-screen">
+        <h1 id="gameOverTitle">¡Partida Terminada!</h1>
+        <p id="winnerDisplay"></p>
+        <p id="playerNamesDisplay"></p>
+        <button id="btnRematch">Revancha</button>
+        <button id="btnNewGame">Nueva Partida</button>
+        <div id="btnRematchStatusIndicator"></div>
+    </div>
+
+    <!-- Pantalla de Juego (Screen3) -->
+    <div id="screen3" class="game-screen">
+        <div class="player-area opponent-area">
+            <span id="opponentNameDisplay">Rival</span>
+            <div id="opponentActiveEffects" class="active-effects-container"></div>
+            <div class="hand opponent-hand" id="opponentHand"></div>
+        </div>
+        <div class="game-central-layout">
+            <div class="deck" id="deck">Mazo</div>
+            <div class="board-area" id="gameBoard"></div>
+            <div class="discard-pile" id="discardPile">Descarte</div>
+        </div>
+        <button id="btnPassTurn" class="game-button">Pasar Turno</button>
+        <div class="player-area own-area">
+            <div class="own-info-bar">
+                <span id="ownNameDisplay">Tú</span>
+            </div>
+            <div id="ownActiveEffects" class="active-effects-container"></div>
+            <div class="hand own-hand" id="ownHand"></div>
+        </div>
+        <p id="gameMessage" class="game-message"></p>
+    </div>
+
+    <!-- Modal para Interacciones -->
+    <div id="cardInteractionModal" class="modal-overlay">
+       <div class="modal-content">
+            <h2 id="modalTitle"></h2>
+            <div id="modalBody" class="modal-body"></div>
+            <div id="modalButtons" class="modal-buttons"></div>
+        </div>
+    </div>
+    
+    <script src="imagenes.js"></script>
+    <script src="cards.js"></script>
+    <script src="dibujar.js"></script>
+    <script src="funcionescartas.js"></script>
+    <script src="deckbuilders.js"></script> 
+    <script src="main.js"></script>
+
+
+</body>
+</html>
