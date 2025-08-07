@@ -14,8 +14,7 @@
 </head>
 <body>
 
-    <!-- Pantalla de Carga Inicial -->
-    <div id="loading-screen" class="game-screen active">
+ <div id="loading-screen" class="game-screen active">
         <h1>CS Cards</h1>
         <p>Cargando...</p>
     </div>
@@ -91,18 +90,27 @@
     </div>
 
     <!-- Pantalla de Juego (Screen3) -->
-    <div id="screen3" class="game-screen">
+      <div id="screen3" class="game-screen">
         <div class="player-area opponent-area">
             <span id="opponentNameDisplay">Rival</span>
             <div id="opponentActiveEffects" class="active-effects-container"></div>
             <div class="hand opponent-hand" id="opponentHand"></div>
         </div>
+        <!-- MODIFICACIÓN: Estructura para dos pilas de descarte -->
         <div class="game-central-layout">
             <div class="deck" id="deck">Mazo</div>
             <div class="board-area" id="gameBoard"></div>
-            <div class="discard-pile" id="discardPile">Descarte</div>
+            <div class="discard-piles-container">
+                <div id="ownDiscardPile" class="discard-pile">Tu Descarte</div>
+                <div id="opponentDiscardPile" class="discard-pile">Descarte Rival</div>
+            </div>
         </div>
-        <button id="btnPassTurn" class="game-button">Pasar Turno</button>
+        
+        <div class="game-actions">
+            <button id="btnPassTurn" class="game-button">Pasar Turno</button>
+            <button id="btnExitGame" class="game-button exit-button">Salir de la Partida</button>
+        </div>
+
         <div class="player-area own-area">
             <div class="own-info-bar">
                 <span id="ownNameDisplay">Tú</span>
@@ -121,6 +129,7 @@
             <div id="modalButtons" class="modal-buttons"></div>
         </div>
     </div>
+    
     
     <script src="imagenes.js"></script>
     <script src="cards.js"></script>

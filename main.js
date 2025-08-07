@@ -41,6 +41,7 @@ const opponentNameDisplay = document.getElementById('opponentNameDisplay');
 const ownNameDisplay = document.getElementById('ownNameDisplay');
 const gameMessageDiv = document.getElementById('gameMessage');
 const btnPassTurn = document.getElementById('btnPassTurn');
+const btnExitGame = document.getElementById('btnExitGame'); // <-- AÑADIDO
 const discardPileDiv = document.getElementById('discardPile');
 const ownActiveEffectsDiv = document.getElementById('ownActiveEffects');
 const opponentActiveEffectsDiv = document.getElementById('opponentActiveEffects');
@@ -176,79 +177,115 @@ btnFindGame.addEventListener('click', async () => {
     await findOrCreateRoom(currentUser, rivalUser);
 });
 
+// --- FUNCIÓN MODIFICADA ---
 async function findOrCreateRoom(player1, player2) {
     const roomsRef = db.collection('rooms');
     const roomId = [player1.uid, player2.id].sort().join('_');
     const roomRef = roomsRef.doc(roomId);
     const roomDoc = await roomRef.get();
 
+    // Si la sala ya existe, la reiniciamos para una nueva partida
     if (roomDoc.exists) {
-        currentRoomId = roomId;
-        currentRivalId = roomDoc.data().player1.uid === currentUser.uid ? roomDoc.data().player2.uid : roomDoc.data().player1.uid;
-        listenToRoomChanges(currentRoomId);
-        showScreen('game');
+        console.log(`Sala existente ${roomId} encontrada. Reiniciando para una nueva partida.`);
+        await resetGameInRoom(roomRef, player1, player2);
     } else {
-        const player1Doc = await db.collection('users').doc(player1.uid).get();
-        const player2Doc = await db.collection('users').doc(player2.id).get();
-
-        let player1Deck = player1Doc.data()?.deck;
-        let player2Deck = player2Doc.data()?.deck;
-
-        if (!player1Deck || player1Deck.length === 0) {
-            player1Deck = generateInitialDeck();
-        }
-        if (!player2Deck || player2Deck.length === 0) {
-            player2Deck = generateInitialDeck();
-        }
-
-        const shuffledDeck1 = shuffleArray(player1Deck);
-        const shuffledDeck2 = shuffleArray(player2Deck);
-
-        const initialHand1 = shuffledDeck1.splice(0, 3);
-        const initialHand2 = shuffledDeck2.splice(0, 3);
-
-        const newRoomData = {
-            player1: { uid: player1.uid, username: player1.username },
-            player2: { uid: player2.id, username: player2.username },
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            gameState: {
-                deck_player1: shuffledDeck1,
-                deck_player2: shuffledDeck2,
-                discardPile_player1: [],
-                discardPile_player2: [],
-                hand_player1: initialHand1,
-                hand_player2: initialHand2,
-                pos_player1: 0,
-                pos_player2: 0,
-                lastPlayedCard: null,
-                currentTurn: Math.random() < 0.5 ? player1.uid : player2.id,
-                gameStatus: "inProgress",
-                winner: null,
-                effectsActivos: {},
-                // --- AÑADIDO: Control de robo de carta por turno ---
-                drawStatus: {
-                    [player1.uid]: false,
-                    [player2.uid]: false
-                }
-            }
-        };
-        await roomRef.set(newRoomData);
-        currentRoomId = roomId;
-        currentRivalId = player2.id;
-        listenToRoomChanges(currentRoomId);
-        showScreen('game');
+        // Si no existe, creamos una nueva
+        console.log(`Creando nueva sala: ${roomId}`);
+        await createNewRoom(roomRef, player1, player2);
     }
+
+    currentRoomId = roomId;
+    currentRivalId = player2.id;
+    listenToRoomChanges(currentRoomId);
+    showScreen('game');
 }
+
+async function createNewRoom(roomRef, player1, player2) {
+    const player1Doc = await db.collection('users').doc(player1.uid).get();
+    const player2Doc = await db.collection('users').doc(player2.id).get();
+
+    let player1Deck = player1Doc.data()?.deck || generateInitialDeck();
+    let player2Deck = player2Doc.data()?.deck || generateInitialDeck();
+
+    const shuffledDeck1 = shuffleArray(player1Deck);
+    const shuffledDeck2 = shuffleArray(player2Deck);
+
+    const initialHand1 = shuffledDeck1.splice(0, 3);
+    const initialHand2 = shuffledDeck2.splice(0, 3);
+
+    const newRoomData = {
+        player1: { uid: player1.uid, username: player1.username },
+        player2: { uid: player2.id, username: player2.username },
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        gameState: {
+            deck_player1: shuffledDeck1,
+            deck_player2: shuffledDeck2,
+            discardPile_player1: [],
+            discardPile_player2: [],
+            hand_player1: initialHand1,
+            hand_player2: initialHand2,
+            pos_player1: 0,
+            pos_player2: 0,
+            lastPlayedCard: null,
+            currentTurn: Math.random() < 0.5 ? player1.uid : player2.id,
+            gameStatus: "inProgress",
+            winner: null,
+            effectsActivos: {},
+            drawStatus: {
+                [player1.uid]: false,
+                [player2.uid]: false
+            }
+        }
+    };
+    await roomRef.set(newRoomData);
+}
+
+// --- FUNCIÓN NUEVA PARA REINICIAR UNA SALA EXISTENTE ---
+async function resetGameInRoom(roomRef, player1, player2) {
+    const player1Doc = await db.collection('users').doc(player1.uid).get();
+    const player2Doc = await db.collection('users').doc(player2.id).get();
+
+    let player1Deck = player1Doc.data()?.deck || generateInitialDeck();
+    let player2Deck = player2Doc.data()?.deck || generateInitialDeck();
+
+    const shuffledDeck1 = shuffleArray(player1Deck);
+    const shuffledDeck2 = shuffleArray(player2Deck);
+
+    const initialHand1 = shuffledDeck1.splice(0, 3);
+    const initialHand2 = shuffledDeck2.splice(0, 3);
+
+    const newGameState = {
+        deck_player1: shuffledDeck1,
+        deck_player2: shuffledDeck2,
+        discardPile_player1: [],
+        discardPile_player2: [],
+        hand_player1: initialHand1,
+        hand_player2: initialHand2,
+        pos_player1: 0,
+        pos_player2: 0,
+        lastPlayedCard: null,
+        currentTurn: Math.random() < 0.5 ? player1.uid : player2.id,
+        gameStatus: "inProgress",
+        winner: null,
+        effectsActivos: {},
+        drawStatus: {
+            [player1.uid]: false,
+            [player2.uid]: false
+        }
+    };
+    await roomRef.update({ gameState: newGameState });
+}
+
 
 function listenToRoomChanges(roomId) {
     if (unsubscribeRoom) {
         unsubscribeRoom();
     }
     const roomRef = db.collection('rooms').doc(roomId);
-    unsubscribeRoom = roomRef.onSnapshot(async (doc) => { // <--- Convertido a async
+    unsubscribeRoom = roomRef.onSnapshot(async (doc) => {
         if (doc.exists) {
             const roomData = doc.data();
-            await updateGameUI(roomData); // <--- Esperar a que la UI se actualice
+            await updateGameUI(roomData);
         } else {
             alert("La partida ha terminado o fue cancelada.");
             showScreen('matchmaking');
@@ -261,35 +298,44 @@ function listenToRoomChanges(roomId) {
 }
 
 
-async function updateGameUI(roomData) { // <--- Convertido a async
+async function updateGameUI(roomData) {
     console.log("Actualizando UI con nuevos datos de la sala:", roomData);
 
     const gameState = roomData.gameState;
+    if (!gameState) {
+        console.warn("gameState no está definido, saltando actualización de UI.");
+        return;
+    }
+    
     const isPlayer1 = roomData.player1.uid === currentUser.uid;
 
     ownNameDisplay.textContent = isPlayer1 ? roomData.player1.username : roomData.player2.username;
     opponentNameDisplay.textContent = isPlayer1 ? roomData.player2.username : roomData.player1.username;
 
-    const ownHand = isPlayer1 ? gameState.hand_player1 : gameState.hand_player2;
-    const opponentHandCount = (isPlayer1 ? gameState.hand_player2 : gameState.hand_player1).length;
+    const ownHand = isPlayer1 ? (gameState.hand_player1 || []) : (gameState.hand_player2 || []);
+    const opponentHand = isPlayer1 ? (gameState.hand_player2 || []) : (gameState.hand_player1 || []);
     renderOwnHand(ownHand);
-    renderOpponentHand(opponentHandCount);
+    renderOpponentHand(opponentHand.length);
 
-    const ownPos = isPlayer1 ? gameState.pos_player1 : gameState.pos_player2;
-    const opponentPos = isPlayer1 ? gameState.pos_player2 : gameState.pos_player1;
+    // --- AÑADIDO: Lógica para obtener ambas pilas de descarte ---
+    const ownDiscard = isPlayer1 ? (gameState.discardPile_player1 || []) : (gameState.discardPile_player2 || []);
+    const opponentDiscard = isPlayer1 ? (gameState.discardPile_player2 || []) : (gameState.discardPile_player1 || []);
+    renderDiscardPiles(ownDiscard, opponentDiscard); // Llamada a la nueva función de dibujado
+
+    const ownPos = isPlayer1 ? (gameState.pos_player1 || 0) : (gameState.pos_player2 || 0);
+    const opponentPos = isPlayer1 ? (gameState.pos_player2 || 0) : (gameState.pos_player1 || 0);
     renderGameBoard(ownPos, opponentPos);
 
     if (gameState.currentTurn === currentUser.uid) {
         gameMessageDiv.textContent = "¡Es tu turno!";
         btnPassTurn.disabled = false;
 
-        // --- AÑADIDO: Lógica para robar carta automáticamente ---
         if (gameState.drawStatus && gameState.drawStatus[currentUser.uid] === false) {
             const roomRef = db.collection('rooms').doc(currentRoomId);
             
-            let ownDeck = isPlayer1 ? [...gameState.deck_player1] : [...gameState.deck_player2];
-            let ownDiscard = isPlayer1 ? [...gameState.discardPile_player1] : [...gameState.discardPile_player2];
-            let currentOwnHand = isPlayer1 ? [...gameState.hand_player1] : [...gameState.hand_player2];
+            let ownDeck = isPlayer1 ? (gameState.deck_player1 || []) : (gameState.deck_player2 || []);
+            let ownDiscard = isPlayer1 ? (gameState.discardPile_player1 || []) : (gameState.discardPile_player2 || []);
+            let currentOwnHand = ownHand;
 
             const newCard = drawCardForTurn(ownDeck, ownDiscard, gameMessageDiv);
 
@@ -367,15 +413,15 @@ async function playCard(cardId) {
 
     const isPlayer1 = roomData.player1.uid === currentUser.uid;
 
-    let ownHand = isPlayer1 ? [...gameState.hand_player1] : [...gameState.hand_player2];
-    let rivalHand = isPlayer1 ? [...gameState.hand_player2] : [...gameState.hand_player1];
-    let ownDeck = isPlayer1 ? [...gameState.deck_player1] : [...gameState.deck_player2];
-    let rivalDeck = isPlayer1 ? [...gameState.deck_player2] : [...gameState.deck_player1];
-    let ownDiscard = isPlayer1 ? [...gameState.discardPile_player1] : [...gameState.discardPile_player2];
-    let rivalDiscard = isPlayer1 ? [...gameState.discardPile_player2] : [...gameState.discardPile_player1];
+    let ownHand = isPlayer1 ? [...(gameState.hand_player1 || [])] : [...(gameState.hand_player2 || [])];
+    let rivalHand = isPlayer1 ? [...(gameState.hand_player2 || [])] : [...(gameState.hand_player1 || [])];
+    let ownDeck = isPlayer1 ? [...(gameState.deck_player1 || [])] : [...(gameState.deck_player2 || [])];
+    let rivalDeck = isPlayer1 ? [...(gameState.deck_player2 || [])] : [...(gameState.deck_player1 || [])];
+    let ownDiscard = isPlayer1 ? [...(gameState.discardPile_player1 || [])] : [...(gameState.discardPile_player2 || [])];
+    let rivalDiscard = isPlayer1 ? [...(gameState.discardPile_player2 || [])] : [...(gameState.discardPile_player1 || [])];
     
-    let ownPos = isPlayer1 ? gameState.pos_player1 : gameState.pos_player2;
-    let rivalPos = isPlayer1 ? gameState.pos_player2 : gameState.pos_player1;
+    let ownPos = isPlayer1 ? (gameState.pos_player1 || 0) : (gameState.pos_player2 || 0);
+    let rivalPos = isPlayer1 ? (gameState.pos_player2 || 0) : (gameState.pos_player1 || 0);
     let effectsActivos = gameState.effectsActivos ? { ...gameState.effectsActivos } : {};
 
     const cardIndex = ownHand.indexOf(cardId);
@@ -417,7 +463,6 @@ async function playCard(cardId) {
         'gameState.pos_player2': isPlayer1 ? mutableState.rivalPos : mutableState.ownPos,
         'gameState.currentTurn': nextTurnPlayerId,
         'gameState.effectsActivos': mutableState.effectsActivos,
-        // --- AÑADIDO: Resetear el estado de robo para el siguiente jugador ---
         [`gameState.drawStatus.${nextTurnPlayerId}`]: false
     };
 
@@ -426,13 +471,25 @@ async function playCard(cardId) {
 
 async function passTurn() {
     const roomRef = db.collection('rooms').doc(currentRoomId);
-    // --- MODIFICACIÓN: Resetear el estado de robo al pasar turno ---
     await roomRef.update({ 
         'gameState.currentTurn': currentRivalId,
         [`gameState.drawStatus.${currentRivalId}`]: false
     });
 }
 btnPassTurn.addEventListener('click', passTurn);
+
+// --- AÑADIDO: Event listener para el botón de salir ---
+if (btnExitGame) {
+    btnExitGame.addEventListener('click', () => {
+        if (unsubscribeRoom) {
+            unsubscribeRoom();
+            unsubscribeRoom = null;
+        }
+        currentRoomId = null;
+        currentRivalId = null;
+        showScreen('matchmaking');
+    });
+}
 
 
 // ============== FUNCIONES DE MODAL Y AUXILIARES ==============

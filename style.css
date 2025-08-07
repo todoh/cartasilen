@@ -230,7 +230,7 @@ button:disabled {
 
 .opponent-hand .card-back {
     background-color: #111;
-    color: #FF0000;
+    color: #ffffff;
     width: 80px;
     height: 110px;
     border-radius: 6px;
@@ -259,7 +259,7 @@ button:disabled {
 }
 
 .card-in-hand:hover {
-    transform: translateY(-15px) scale(1.1);
+    transform: translateY(-55px) scale(1.8) ;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
     z-index: 10;
 }
@@ -494,4 +494,15 @@ button:disabled {
     margin-top: 20px;
     display: flex;
     gap: 20px;
+}
+.discard-piles-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Espacio entre las dos pilas */
+    align-items: center;
+}
+
+.discard-pile {
+    width: 100px; /* Un poco más pequeñas para que quepan bien */
+    height: 140px;
 }
